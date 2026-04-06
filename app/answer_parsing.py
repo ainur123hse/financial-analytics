@@ -22,34 +22,63 @@ FENCE_PATTERN = re.compile(
 def parse_llm_answer(answer: str) -> dict[str, Any]:
     cleaned = _strip_outer_fences(answer)
     matches = list(TOP_LEVEL_TAG_PATTERN.finditer(cleaned))
-    if len(matches) != 1:
+    if not matches:
         return {
             "kind": "invalid",
-            "error": "Expected exactly one top-level tag: <code> or <final_answer>.",
+            "error": "Expected at least one top-level tag: <code> or <final_answer>.",
             "raw_answer": answer,
         }
 
-    match = matches[0]
-    prefix = cleaned[: match.start()].strip()
-    suffix = cleaned[match.end() :].strip()
-    if prefix or suffix:
+    cursor = 0
+    tag_bodies: dict[str, str] = {}
+    tag_counts = {"code": 0, "final_answer": 0}
+
+    for match in matches:
+        if cleaned[cursor : match.start()].strip():
+            return {
+                "kind": "invalid",
+                "error": "Response contains extra text outside the allowed top-level tags.",
+                "raw_answer": answer,
+            }
+        cursor = match.end()
+
+        tag = match.group("tag").lower()
+        tag_counts[tag] += 1
+        if tag_counts[tag] > 1:
+            return {
+                "kind": "invalid",
+                "error": f"Response must contain at most one top-level <{tag}> tag.",
+                "raw_answer": answer,
+            }
+
+        tag_bodies[tag] = match.group("body").strip()
+
+    if cleaned[cursor:].strip():
         return {
             "kind": "invalid",
-            "error": "Response contains extra text outside the required tag.",
+            "error": "Response contains extra text outside the allowed top-level tags.",
             "raw_answer": answer,
         }
 
-    body = match.group("body").strip()
+    # If both tags are present, code always wins. This prevents a speculative
+    # final answer from bypassing the execution path.
+    if tag_counts["code"]:
+        body = tag_bodies["code"]
+        if not body:
+            return {
+                "kind": "invalid",
+                "error": "Tag <code> must not be empty.",
+                "raw_answer": answer,
+            }
+        return _parse_code_answer(body, answer)
+
+    body = tag_bodies["final_answer"]
     if not body:
         return {
             "kind": "invalid",
-            "error": f"Tag <{match.group('tag').lower()}> must not be empty.",
+            "error": "Tag <final_answer> must not be empty.",
             "raw_answer": answer,
         }
-
-    tag = match.group("tag").lower()
-    if tag == "code":
-        return _parse_code_answer(body, answer)
     return {"kind": "final_answer", "final_answer": body}
 
 

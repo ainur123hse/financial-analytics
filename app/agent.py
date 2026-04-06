@@ -57,7 +57,6 @@ async def ask(
     history: list[dict[str, Any]],
     prompts_with_images: list[tuple[str, str | None]],
     model: str,
-    *,
     phase: str,
     iteration: int | None,
     final_only: bool = False,
