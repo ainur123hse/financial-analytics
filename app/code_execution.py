@@ -83,7 +83,7 @@ def execute_code(
                         stdout="",
                         stderr="",
                         other_info="",
-                        images_to_next_iteration=[],
+                        images=[],
                         error=dependency_install["error"],
                     )
                 )
@@ -111,7 +111,7 @@ def execute_code(
                         stdout=stdout,
                         stderr=stderr,
                         other_info="",
-                        images_to_next_iteration=[],
+                        images=[],
                         error=f"Code execution timed out after {timeout_seconds} seconds.",
                     )
                 )
@@ -129,7 +129,7 @@ def execute_code(
                         stdout=stdout,
                         stderr=stderr,
                         other_info="",
-                        images_to_next_iteration=[],
+                        images=[],
                         error=f"Code exited with status {completed.returncode}.",
                     )
                 )
@@ -147,7 +147,7 @@ def execute_code(
                         stdout=stdout,
                         stderr=stderr,
                         other_info="",
-                        images_to_next_iteration=[],
+                        images=[],
                         error=f"stdout is not valid JSON: {exc.msg}.",
                     )
                 )
@@ -163,14 +163,14 @@ def execute_code(
                         stdout=stdout,
                         stderr=stderr,
                         other_info="",
-                        images_to_next_iteration=[],
+                        images=[],
                         error="stdout JSON must be an object.",
                     )
                 )
 
             try:
-                if "images_to_next_iteration" not in payload:
-                    raise ValueError('stdout JSON must include "images_to_next_iteration".')
+                if "images" not in payload:
+                    raise ValueError('stdout JSON must include "images".')
                 if "other_info" not in payload:
                     raise ValueError('stdout JSON must include "other_info".')
 
@@ -178,7 +178,7 @@ def execute_code(
                 if not isinstance(other_info, str):
                     raise ValueError('"other_info" must be a string.')
 
-                images = _normalize_images(payload["images_to_next_iteration"], run_dir)
+                images = _normalize_images(payload["images"], run_dir)
             except ValueError as exc:
                 return finish(
                     _build_execution_result(
@@ -190,7 +190,7 @@ def execute_code(
                         stdout=stdout,
                         stderr=stderr,
                         other_info="",
-                        images_to_next_iteration=[],
+                        images=[],
                         error=str(exc),
                     )
                 )
@@ -205,7 +205,7 @@ def execute_code(
                     stdout=stdout,
                     stderr=stderr,
                     other_info=other_info.strip(),
-                    images_to_next_iteration=images,
+                    images=images,
                     error=None,
                 )
             )
@@ -307,7 +307,7 @@ def _build_execution_result(
     stdout: str,
     stderr: str,
     other_info: str,
-    images_to_next_iteration: list[dict[str, str]],
+    images: list[dict[str, str]],
     error: str | None,
 ) -> dict[str, Any]:
     return {
@@ -324,7 +324,7 @@ def _build_execution_result(
         "stdout": stdout,
         "stderr": stderr,
         "other_info": other_info,
-        "images_to_next_iteration": images_to_next_iteration,
+        "images": images,
         "note_files": _collect_note_files(run_dir),
         "error": error,
     }
@@ -347,7 +347,7 @@ def _make_relative_to_run_dir(path: Path, run_dir: Path) -> str:
 
 def _normalize_images(images: Any, run_dir: Path) -> list[dict[str, str]]:
     if not isinstance(images, list):
-        raise ValueError('"images_to_next_iteration" must be a list.')
+        raise ValueError('"images" must be a list.')
 
     normalized: list[dict[str, str]] = []
     run_dir_resolved = run_dir.resolve()

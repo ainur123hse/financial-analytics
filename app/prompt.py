@@ -46,7 +46,7 @@ def _build_execution_result_prompts(result: dict[str, Any]) -> list[tuple[str, s
 
     prompts: list[tuple[str, str | None]] = []
 
-    for image in result["images_to_next_iteration"]:
+    for image in result["images"]:
         prompts.append(
             (
                 f"Артефакт {image['display_path']}: {image['image_info']}",
