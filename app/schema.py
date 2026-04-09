@@ -23,7 +23,7 @@ class CodeExecutionResult(BaseModel):
     stdout: str
 
 class ImageQuestion(BaseModel):
-    image_path: Path
+    image_path: str
     question: str
 
 class MainAgentContent(BaseModel):
