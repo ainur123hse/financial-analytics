@@ -1,5 +1,8 @@
 from enum import Enum
+from pathlib import Path
+
 from pydantic import BaseModel
+
 
 class Role(Enum):
     user = "user"
@@ -13,3 +16,18 @@ class ContentType(Enum):
 class Content(BaseModel):
     value: str
     type: ContentType
+
+class CodeExecutionResult(BaseModel):
+    success: bool
+    exception_with_traceback: str | None = None
+    stdout: str
+
+class ImageQuestion(BaseModel):
+    image_path: Path
+    question: str
+
+class MainAgentContent(BaseModel):
+    code_to_execute: str | None
+    dependencies: list[str] | None
+    image_question: ImageQuestion | None
+    final_answer: str | None

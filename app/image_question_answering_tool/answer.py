@@ -5,7 +5,7 @@ from pathlib import Path
 
 MODEL = "qwen/qwen3-vl-32b-instruct"
 
-async def answer(image_path: Path, question: str) -> str:
+async def answer_by_image(image_path: Path, question: str) -> str:
     image_url = image_path_to_data_url(image_path)
     image_content = Content(
         value=image_url,
