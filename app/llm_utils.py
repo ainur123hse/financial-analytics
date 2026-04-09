@@ -24,6 +24,9 @@ def make_message(role: Role, content: list[Content]) -> dict[str, Any]:
         "content": content_dict
     }
 
+def get_response_content(response: Any) -> str:
+    return response.choices[0].message.content
+
 def image_path_to_data_url(image_path: Path) -> str:
     path = Path(image_path).expanduser().resolve()
     if not path.is_file():

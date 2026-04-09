@@ -2,12 +2,13 @@ from pathlib import Path
 from docling_core.types.doc import ImageRefMode
 from app.documents_preprocessing.docling_converter import converter
 from app.documents_preprocessing.prompt import make_prompt
-from app.llm_messages_utils import make_message, image_path_to_data_url
+from app.llm_utils import make_message, image_path_to_data_url
 from app.schema import Role, Content, ContentType
 from app.llm_client import LLMClient
 import asyncio
 import shutil
 from app.documents_preprocessing.schema import Markdown
+from app.llm_utils import get_response_content
 
 MARKDOWNS_DIR = Path("markdowns")
 MARKDOWNS_DIR.mkdir(parents=True, exist_ok=True)
@@ -28,7 +29,7 @@ async def get_image_description(image_path: Path, text_before: str, text_after: 
     message = make_message(role=Role.user, content=content)
     async with LLMClient() as client:
         llm_response = await client.chat_completion(messages=[message], model=MODEL)
-        description = llm_response.choices[0].message.content
+        description = get_response_content(llm_response)
 
     return description
 
