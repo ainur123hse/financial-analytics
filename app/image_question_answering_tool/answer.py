@@ -16,9 +16,12 @@ async def answer_by_image(image_path: Path, question: str) -> str:
         type=ContentType.text
     )
     async with LLMClient() as client:
+        system_message = make_message(
+            role=Role.system, content=[Content(value="При ответах на вопрос опирайся только на содержание изображения", type=ContentType.text)]
+        )
         message = make_message(
             role=Role.user, content=[image_content, question_content]
         )
-        llm_response = await client.chat_completion(messages=[message], model=MODEL)
+        llm_response = await client.chat_completion(messages=[system_message, message], model=MODEL)
 
     return get_response_content(llm_response)
