@@ -1,6 +1,4 @@
 from enum import Enum
-from pathlib import Path
-
 from pydantic import BaseModel
 
 
@@ -29,5 +27,5 @@ class ImageQuestion(BaseModel):
 class MainAgentContent(BaseModel):
     code_to_execute: str | None
     dependencies: list[str] | None
-    image_question: ImageQuestion | None
+    image_questions: list[ImageQuestion] | None
     final_answer: str | None

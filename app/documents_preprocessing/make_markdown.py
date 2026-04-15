@@ -65,7 +65,7 @@ async def make_markdown(pdf_path: Path, max_image_context_words: int = 3000) -> 
         new_image_path = f"{png_count}.png"
         png_count += 1
         shutil.copy(src=image_path, dst=images_dir_path/new_image_path)
-        lines_to_replace.append((line, new_image_path))
+        lines_to_replace.append((line, f"{images_dir_path.name}/{new_image_path}"))
 
     descriptions = await asyncio.gather(*tasks)
     assert len(descriptions) == len(lines_to_replace)

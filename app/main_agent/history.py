@@ -4,7 +4,7 @@ from app.schema import CodeExecutionResult, Role, Content, ContentType
 def new_history_messages(
     main_agent_content: str,
     code_res: CodeExecutionResult | None,
-    image_qa_res: str | None
+    image_qa_res: list[tuple[str, str, str]] | None
 )-> list[dict]:
     assistant_message = make_message(
         role=Role.assistant,
@@ -25,7 +25,17 @@ def new_history_messages(
         observations.append("\n".join(code_observation_lines))
 
     if image_qa_res is not None:
-        observations.append(f"Ответ на вопрос по изображению:\n{image_qa_res}")
+        for index, (image_path, question, answer) in enumerate(image_qa_res, start=1):
+            observations.append(
+                "\n".join(
+                    [
+                        f"Ответ на вопрос по изображению #{index}:",
+                        f"image_path: {image_path}",
+                        f"question: {question}",
+                        f"answer:\n{answer}",
+                    ]
+                )
+            )
 
     if not observations:
         raise ValueError("No tool output was provided to continue the dialogue.")
