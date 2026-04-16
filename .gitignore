@@ -1,6 +1,9 @@
 .env
 .venv/
+.uv-cache/
 __pycache__/
 *.pyc
 .agent_runs
 .idea
+code_execution_working_dir/
+uploaded_pdfs/

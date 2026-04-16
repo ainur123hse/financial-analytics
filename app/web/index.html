@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Financial Analytics</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <h1>Financial Analytics</h1>
+      <p>Upload PDFs, track conversion status, and ask questions across markdowns.</p>
+    </header>
+
+    <section class="card">
+      <h2>1. Convert PDFs to Markdown</h2>
+      <form id="convert-form" class="stack">
+        <label class="label" for="pdf-files">PDF files</label>
+        <input id="pdf-files" name="files" type="file" accept="application/pdf" multiple required>
+        <button id="convert-submit" type="submit">Start conversion</button>
+      </form>
+      <div id="convert-result" class="result"></div>
+    </section>
+
+    <section class="card">
+      <h2>2. Check conversion status</h2>
+      <form id="status-form" class="inline">
+        <input id="task-id" type="text" placeholder="Paste task_id" required>
+        <button type="submit">Get status</button>
+      </form>
+      <div id="status-result" class="result"></div>
+    </section>
+
+    <section class="card">
+      <h2>3. Ask a question</h2>
+      <form id="qa-form" class="stack">
+        <label class="label" for="question">Question</label>
+        <textarea id="question" rows="4" placeholder="What is the revenue trend?" required></textarea>
+        <button type="submit">Ask</button>
+      </form>
+      <div id="qa-result" class="result"></div>
+    </section>
+  </main>
+
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

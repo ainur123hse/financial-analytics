@@ -1,4 +1,5 @@
 import asyncio
+import shutil
 from pathlib import Path
 from uuid import uuid4
 
@@ -23,7 +24,6 @@ MAX_ITERATIONS = 6
 
 CODE_EXECUTION_WORKING_DIR = Path("code_execution_working_dir")
 CODE_EXECUTION_WORKING_DIR.mkdir(parents=True, exist_ok=True)
-VIRTUAL_ENV_PATH = CODE_EXECUTION_WORKING_DIR / ".venv"
 
 
 def _serialize_code_result(code_res: CodeExecutionResult) -> dict[str, str | bool | None]:
@@ -45,11 +45,14 @@ def _serialize_image_answers(image_qa_res: list[tuple[str, str, str]]) -> list[d
     ]
 
 
-async def _answer_image_questions(image_questions: list[ImageQuestion]) -> list[tuple[str, str, str]]:
+async def _answer_image_questions(
+    image_questions: list[ImageQuestion],
+    working_dir_path: Path,
+) -> list[tuple[str, str, str]]:
     answers = await asyncio.gather(
         *[
             answer_by_image(
-                image_path=CODE_EXECUTION_WORKING_DIR / image_question.image_path,
+                image_path=working_dir_path / image_question.image_path,
                 question=image_question.question,
             )
             for image_question in image_questions
@@ -61,14 +64,18 @@ async def _answer_image_questions(image_questions: list[ImageQuestion]) -> list[
     ]
 
 
-async def _answer_to_question_impl(user_question: str, md_dir_path: Path) -> str:
+async def _answer_to_question_impl(
+    user_question: str,
+    md_dir_path: Path,
+    working_dir_path: Path,
+) -> str:
     prepare_code_execution_working_dir(
         md_dir_path=md_dir_path,
-        code_execution_working_dir=CODE_EXECUTION_WORKING_DIR,
+        code_execution_working_dir=working_dir_path,
     )
     sys_message = make_message(
         role=Role.system,
-        content=[Content(value=make_system_prompt(md_dir_path), type=ContentType.text)],
+        content=[Content(value=make_system_prompt(working_dir_path), type=ContentType.text)],
     )
 
     user_question_message = make_message(
@@ -140,8 +147,8 @@ async def _answer_to_question_impl(user_question: str, md_dir_path: Path) -> str
                         code_res = execute_python_code_and_parse_result(
                             python_code=main_agent_parsed_content.code_to_execute,
                             dependencies=dependencies,
-                            working_dir_path=CODE_EXECUTION_WORKING_DIR,
-                            virtual_env_path=VIRTUAL_ENV_PATH,
+                            working_dir_path=working_dir_path,
+                            virtual_env_path=working_dir_path / ".venv",
                         )
                         safe_update_observation(
                             code_observation,
@@ -168,7 +175,8 @@ async def _answer_to_question_impl(user_question: str, md_dir_path: Path) -> str
                         input=image_questions_payload,
                     ) as image_observation:
                         image_qa_res = await _answer_image_questions(
-                            image_questions=main_agent_parsed_content.image_questions
+                            image_questions=main_agent_parsed_content.image_questions,
+                            working_dir_path=working_dir_path,
                         )
                         safe_update_observation(
                             image_observation,
@@ -202,6 +210,7 @@ async def _answer_to_question_impl(user_question: str, md_dir_path: Path) -> str
 
 async def answer_to_question(user_question: str, md_dir_path: Path) -> str:
     session_id = f"main-agent-{uuid4()}"
+    request_working_dir = CODE_EXECUTION_WORKING_DIR / session_id
     root_observation = None
     try:
         with start_observation_context(
@@ -228,6 +237,7 @@ async def answer_to_question(user_question: str, md_dir_path: Path) -> str:
                 answer = await _answer_to_question_impl(
                     user_question=user_question,
                     md_dir_path=md_dir_path,
+                    working_dir_path=request_working_dir,
                 )
 
             safe_update_observation(
@@ -243,4 +253,6 @@ async def answer_to_question(user_question: str, md_dir_path: Path) -> str:
         )
         raise
     finally:
+        if request_working_dir.exists():
+            shutil.rmtree(request_working_dir, ignore_errors=True)
         flush_langfuse()

@@ -1,16 +1,17 @@
 from pathlib import Path
-from docling_core.types.doc import ImageRefMode
-from app.documents_preprocessing.docling_converter import converter
-from app.documents_preprocessing.prompt import make_prompt
-from app.llm_utils import make_message, image_path_to_data_url
-from app.schema import Role, Content, ContentType
-from app.llm_client import LLMClient
 import asyncio
 import shutil
-from app.documents_preprocessing.schema import Markdown
-from app.llm_utils import get_response_content
 
-MARKDOWNS_DIR = Path("markdowns")
+from app.config import settings
+from app.documents_preprocessing.docling_converter import get_converter
+from app.documents_preprocessing.prompt import make_prompt
+from app.documents_preprocessing.schema import Markdown
+from app.llm_utils import make_message, image_path_to_data_url
+from app.llm_client import LLMClient
+from app.llm_utils import get_response_content
+from app.schema import Content, ContentType, Role
+
+MARKDOWNS_DIR = Path(settings.MARKDOWNS_DIR)
 MARKDOWNS_DIR.mkdir(parents=True, exist_ok=True)
 MODEL = "qwen/qwen3-vl-32b-instruct"
 
@@ -35,7 +36,9 @@ async def get_image_description(image_path: Path, text_before: str, text_after: 
 
 
 async def make_markdown(pdf_path: Path, max_image_context_words: int = 3000) -> Markdown:
-    result = converter.convert(pdf_path)
+    from docling_core.types.doc import ImageRefMode
+
+    result = get_converter().convert(pdf_path)
     md_path = MARKDOWNS_DIR /f"{pdf_path.stem}.md"
     images_dir_path = MARKDOWNS_DIR /f"{pdf_path.stem}_images"
     images_dir_path.mkdir(parents=True, exist_ok=True)

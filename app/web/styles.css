@@ -1,0 +1,129 @@
+:root {
+  --bg: #f3f7fb;
+  --card: #ffffff;
+  --ink: #132033;
+  --muted: #55657a;
+  --line: #d6dfeb;
+  --accent: #0e7490;
+  --accent-ink: #ffffff;
+  --error: #b42318;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 10% 10%, #deedf6 0%, transparent 30%),
+    radial-gradient(circle at 90% 0%, #d9f2ef 0%, transparent 25%),
+    var(--bg);
+}
+
+.page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+}
+
+.hero p {
+  margin: 0.4rem 0 0;
+  color: var(--muted);
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 1rem;
+  box-shadow: 0 8px 24px rgba(19, 32, 51, 0.06);
+}
+
+.card h2 {
+  margin: 0 0 0.8rem;
+  font-size: 1.1rem;
+}
+
+.stack {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.inline {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+}
+
+.label {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+input,
+textarea,
+button {
+  font: inherit;
+}
+
+input,
+textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.62rem 0.75rem;
+  background: #fff;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+button {
+  border: 0;
+  border-radius: 10px;
+  padding: 0.62rem 0.9rem;
+  background: var(--accent);
+  color: var(--accent-ink);
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.result {
+  margin-top: 0.8rem;
+  white-space: pre-wrap;
+  font-family: "IBM Plex Mono", "SFMono-Regular", monospace;
+  font-size: 0.9rem;
+  background: #f8fbfe;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  padding: 0.7rem;
+  min-height: 2.3rem;
+}
+
+.result.error {
+  border-color: #f7b3ad;
+  background: #fff3f1;
+  color: var(--error);
+}
+
+@media (max-width: 640px) {
+  .inline {
+    grid-template-columns: 1fr;
+  }
+}

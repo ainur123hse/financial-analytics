@@ -1,4 +1,5 @@
 from pathlib import Path
+import shutil
 import subprocess
 import traceback
 import venv
@@ -17,7 +18,7 @@ def _ensure_virtual_environment(virtual_env_path: Path) -> None:
         return
 
     virtual_env_path.parent.mkdir(parents=True, exist_ok=True)
-    venv.EnvBuilder(with_pip=True).create(str(virtual_env_path))
+    venv.EnvBuilder(with_pip=False).create(str(virtual_env_path))
 
 
 def install_dependencies_if_not_already_exist(virtual_env_path: Path, dependencies: list[str]) -> None:
@@ -27,11 +28,14 @@ def install_dependencies_if_not_already_exist(virtual_env_path: Path, dependenci
     if not dependencies:
         return
 
+    if shutil.which("uv") is None:
+        raise RuntimeError("Dependency installation failed: `uv` executable was not found in PATH.")
+
     python_executable = _get_venv_python_executable(venv_path)
     try:
-        # pip will skip already satisfied packages in this environment.
+        # uv resolves and installs only what's needed for this environment.
         subprocess.run(
-            [str(python_executable), "-m", "pip", "install", *dependencies],
+            ["uv", "pip", "install", "--python", str(python_executable), *dependencies],
             check=True,
             text=True,
             capture_output=True,
