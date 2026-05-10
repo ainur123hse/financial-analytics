@@ -23,7 +23,7 @@ convertForm.addEventListener("submit", async (event) => {
 
   const files = fileInput.files;
   if (!files || files.length === 0) {
-    setResult(convertResult, "Select at least one PDF file.", true);
+    setResult(convertResult, "Select at least one supported document.", true);
     return;
   }
 

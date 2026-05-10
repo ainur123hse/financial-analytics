@@ -16,15 +16,18 @@ def _rollback_batch_outputs(stems: list[str]) -> None:
     for stem in stems:
         markdown_path = MARKDOWNS_DIR / f"{stem}.md"
         images_dir_path = MARKDOWNS_DIR / f"{stem}_images"
+        artifacts_dir_path = MARKDOWNS_DIR / f"{stem}_artifacts"
 
         if markdown_path.exists():
             markdown_path.unlink()
         if images_dir_path.exists() and images_dir_path.is_dir():
             shutil.rmtree(images_dir_path)
+        if artifacts_dir_path.exists() and artifacts_dir_path.is_dir():
+            shutil.rmtree(artifacts_dir_path)
 
 
-@celery_app.task(name="conversions.convert_pdf_batch", bind=True)
-def convert_pdf_batch(
+@celery_app.task(name="conversions.convert_document_batch", bind=True)
+def convert_document_batch(
     self,
     task_id: str,
     files: list[dict[str, str]],
@@ -41,10 +44,10 @@ def convert_pdf_batch(
         for file_meta in files:
             filename = file_meta["original_filename"]
             stem = file_meta["stem"]
-            pdf_path = Path(file_meta["source_path"])
+            source_path = Path(file_meta["source_path"])
 
             try:
-                markdown = asyncio.run(make_markdown(pdf_path=pdf_path))
+                markdown = asyncio.run(make_markdown(source_path=source_path))
                 items.append(
                     {
                         "filename": filename,

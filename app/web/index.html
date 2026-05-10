@@ -10,14 +10,21 @@
   <main class="page">
     <header class="hero">
       <h1>Financial Analytics</h1>
-      <p>Upload PDFs, track conversion status, and ask questions across markdowns.</p>
+      <p>Upload supported documents, track conversion status, and ask questions across markdowns.</p>
     </header>
 
     <section class="card">
-      <h2>1. Convert PDFs to Markdown</h2>
+      <h2>1. Convert Documents to Markdown</h2>
       <form id="convert-form" class="stack">
-        <label class="label" for="pdf-files">PDF files</label>
-        <input id="pdf-files" name="files" type="file" accept="application/pdf" multiple required>
+        <label class="label" for="pdf-files">Supported documents</label>
+        <input
+          id="pdf-files"
+          name="files"
+          type="file"
+          accept=".pdf,.html,.htm,text/html,application/pdf"
+          multiple
+          required
+        >
         <button id="convert-submit" type="submit">Start conversion</button>
       </form>
       <div id="convert-result" class="result"></div>

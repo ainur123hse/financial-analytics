@@ -29,8 +29,12 @@ from app.api.schemas import (
     QARequest,
     QAResponse,
 )
-from app.api.tasks import convert_pdf_batch
+from app.api.tasks import convert_document_batch
 from app.config import settings
+from app.documents_preprocessing.docling_converter import (
+    is_supported_source_path,
+    supported_source_extensions_label,
+)
 from app.documents_preprocessing.make_markdown import MARKDOWNS_DIR
 from app.main_agent.run import answer_to_question
 
@@ -46,11 +50,11 @@ def _normalize_uploaded_filename(upload: UploadFile) -> str:
     return Path(raw_name).name
 
 
-def _validate_pdf_batch(files: list[UploadFile]) -> list[dict[str, object]]:
+def _validate_source_batch(files: list[UploadFile]) -> list[dict[str, object]]:
     if not files:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="At least one PDF file must be provided.",
+            detail="At least one supported document must be provided.",
         )
 
     normalized_files: list[dict[str, object]] = []
@@ -63,7 +67,7 @@ def _validate_pdf_batch(files: list[UploadFile]) -> list[dict[str, object]]:
             continue
 
         path = Path(filename)
-        if path.suffix.lower() != ".pdf":
+        if not is_supported_source_path(path):
             invalid_files.append(filename)
             continue
 
@@ -84,7 +88,7 @@ def _validate_pdf_batch(files: list[UploadFile]) -> list[dict[str, object]]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={
-                "message": "All files must be valid PDF files.",
+                "message": f"All files must use one of: {supported_source_extensions_label()}.",
                 "invalid_files": invalid_files,
             },
         )
@@ -96,7 +100,7 @@ def _validate_pdf_batch(files: list[UploadFile]) -> list[dict[str, object]]:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={
-                "message": "Batch contains duplicated PDF stems.",
+                "message": "Batch contains duplicated document stems.",
                 "conflicting_stems": duplicated_stems,
             },
         )
@@ -136,7 +140,7 @@ async def create_conversion_task(
     request: Request,
     files: list[UploadFile] = File(...),
 ) -> ConversionCreateResponse:
-    normalized_files = _validate_pdf_batch(files=files)
+    normalized_files = _validate_source_batch(files=files)
     stems = [entry["stem"] for entry in normalized_files]
 
     existing_conflicts = _find_existing_output_conflicts(stems=stems)
@@ -189,7 +193,7 @@ async def create_conversion_task(
 
         add_active_task(task_id=task_id)
         mark_task_registered(task_id=task_id)
-        convert_pdf_batch.apply_async(
+        convert_document_batch.apply_async(
             kwargs={
                 "task_id": task_id,
                 "files": task_files_payload,
