@@ -10,9 +10,7 @@
   <main class="page">
     <section id="auth-shell" class="auth-shell">
       <div class="brand">
-        <p class="eyebrow">Financial Analytics</p>
-        <h1>Приватные треды для аналитики и генерации</h1>
-        <p class="lede">Каждый пользователь работает только со своими тредами, двумя типами документов и историей сгенерированной аналитики.</p>
+        <h1 class="brand-title">Financial Analytics</h1>
       </div>
 
       <section class="card auth-card">
@@ -21,14 +19,18 @@
           <button id="register-tab" class="ghost-button" type="button">Регистрация</button>
         </div>
 
-        <form id="auth-form" class="stack">
-          <label class="label" for="auth-email">Email</label>
-          <input id="auth-email" type="email" autocomplete="email" required>
-          <label class="label" for="auth-password">Пароль</label>
-          <input id="auth-password" type="password" autocomplete="current-password" minlength="8" required>
+        <form id="auth-form" class="stack auth-form">
+          <div class="field">
+            <label class="label" for="auth-email">Email</label>
+            <input id="auth-email" type="email" autocomplete="email" required>
+          </div>
+          <div class="field">
+            <label class="label" for="auth-password">Пароль</label>
+            <input id="auth-password" type="password" autocomplete="current-password" minlength="8" required>
+          </div>
           <button id="auth-submit" type="submit">Войти</button>
         </form>
-        <div id="auth-result" class="result"></div>
+        <div id="auth-result" class="result hidden" aria-live="polite"></div>
       </section>
     </section>
 
@@ -74,14 +76,13 @@
             <div class="section-header">
               <div>
                 <p class="section-label">Документы</p>
-                <h2>Два бизнес-типа загрузки</h2>
+                <h2>Загрузка документов</h2>
               </div>
             </div>
 
             <div class="upload-groups">
               <section class="upload-group">
                 <div>
-                  <p class="section-label">Тип 1</p>
                   <h3>Аналитика прошлых периодов</h3>
                 </div>
                 <form id="analytics-convert-form" class="stack">
@@ -100,7 +101,6 @@
 
               <section class="upload-group">
                 <div>
-                  <p class="section-label">Тип 2</p>
                   <h3>Релевантные источники</h3>
                 </div>
                 <form id="sources-convert-form" class="stack">
@@ -118,7 +118,7 @@
               </section>
             </div>
 
-            <div id="convert-result" class="result"></div>
+            <div id="convert-result" class="result hidden" aria-live="polite"></div>
 
             <div class="list-block">
               <div class="list-header">
@@ -144,7 +144,7 @@
               <textarea id="period-description" rows="5" placeholder="Например: март 2026, результаты I квартала 2026 года" required></textarea>
               <button id="generation-submit" type="submit">Сгенерировать аналитику</button>
             </form>
-            <div id="generation-result" class="result"></div>
+            <div id="generation-result" class="result hidden" aria-live="polite"></div>
           </section>
         </section>
       </section>

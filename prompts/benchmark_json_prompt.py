@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+import argparse
+import sys
 from pathlib import Path
 from textwrap import dedent
 
@@ -127,5 +131,46 @@ def make_prompt(dataset_root: str | Path) -> str:
         """
     ).strip()
 
-p = make_prompt("/home/ainur/dissertation/financial-analytics/dataset/лента")
-print(p)
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="benchmark_json_prompt.py",
+        description=(
+            "Build a Codex prompt that generates bench_info.json from a dataset root "
+            "with аналитика/ and источники/."
+        ),
+    )
+    parser.add_argument(
+        "dataset_root",
+        type=Path,
+        help="Path to the dataset root that contains аналитика/ and источники/.",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        help="Write the generated prompt to a file instead of stdout.",
+    )
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+
+    try:
+        prompt = make_prompt(args.dataset_root)
+        if args.output is not None:
+            args.output.expanduser().write_text(f"{prompt}\n", encoding="utf-8")
+        else:
+            print(prompt)
+        return 0
+    except KeyboardInterrupt:
+        return 130
+    except Exception as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

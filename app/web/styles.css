@@ -11,6 +11,9 @@
   --danger: #9d2f2f;
   --danger-soft: #fae0de;
   --success-soft: #edf5e7;
+  --success-ink: #355842;
+  --pending-soft: rgba(245, 215, 204, 0.72);
+  --pending-line: rgba(180, 79, 47, 0.22);
   --shadow: 0 20px 40px rgba(44, 33, 17, 0.08);
 }
 
@@ -42,13 +45,16 @@ body {
 .auth-shell {
   min-height: calc(100vh - 3rem);
   display: grid;
-  grid-template-columns: 1.2fr minmax(320px, 420px);
-  gap: 1.2rem;
+  grid-template-columns: minmax(0, 1.25fr) minmax(340px, 430px);
+  gap: clamp(1.25rem, 3vw, 2.75rem);
   align-items: center;
 }
 
 .brand {
-  padding: 2rem;
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  padding: clamp(1rem, 4vw, 3rem);
 }
 
 .eyebrow,
@@ -60,24 +66,22 @@ body {
   color: var(--muted);
 }
 
-.brand h1,
+.brand-title,
 .workspace-header h1 {
   margin: 0;
   font-family: "IBM Plex Serif", "Georgia", serif;
-  font-size: clamp(2.4rem, 5vw, 4.8rem);
   line-height: 0.95;
+}
+
+.brand-title {
+  max-width: 8ch;
+  font-size: clamp(3.4rem, 8vw, 6.2rem);
+  line-height: 0.88;
+  letter-spacing: -0.05em;
 }
 
 .workspace-header h1 {
   font-size: clamp(1.8rem, 3vw, 3rem);
-}
-
-.lede {
-  max-width: 42rem;
-  margin: 1rem 0 0;
-  font-size: 1.05rem;
-  line-height: 1.6;
-  color: var(--muted);
 }
 
 .card {
@@ -97,7 +101,6 @@ body {
   padding: 1.1rem;
 }
 
-.auth-switch,
 .sidebar-top,
 .workspace-actions,
 .section-header,
@@ -108,11 +111,30 @@ body {
   align-items: center;
 }
 
-.auth-switch,
 .sidebar-top,
 .section-header,
 .list-header {
   justify-content: space-between;
+}
+
+.auth-card {
+  display: grid;
+  gap: 1.35rem;
+  padding: 1.4rem;
+}
+
+.auth-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+  padding: 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 253, 249, 0.74);
+}
+
+.auth-switch .ghost-button {
+  width: 100%;
 }
 
 .stack {
@@ -120,8 +142,18 @@ body {
   gap: 0.7rem;
 }
 
+.auth-form {
+  gap: 1rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.45rem;
+}
+
 .label {
   font-size: 0.92rem;
+  font-weight: 500;
   color: var(--muted);
 }
 
@@ -194,22 +226,70 @@ button:disabled {
   border-color: transparent;
 }
 
-.result {
-  margin-top: 0.8rem;
-  min-height: 2.5rem;
-  white-space: pre-wrap;
-  font-family: "IBM Plex Mono", "SFMono-Regular", monospace;
-  font-size: 0.88rem;
-  background: rgba(255, 253, 249, 0.78);
-  border: 1px dashed var(--line);
-  border-radius: 14px;
-  padding: 0.85rem;
+.auth-switch .ghost-button.is-active:hover {
+  background: var(--accent);
+  color: #fff8f2;
 }
 
-.result.error {
+.result {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.72rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 253, 249, 0.78);
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.result[data-tone="pending"] {
+  background: var(--pending-soft);
+  border-color: var(--pending-line);
+  color: var(--accent-deep);
+}
+
+.result[data-tone="success"] {
+  background: var(--success-soft);
+  border-color: rgba(53, 88, 66, 0.18);
+  color: var(--success-ink);
+}
+
+.result[data-tone="error"] {
   background: var(--danger-soft);
-  border-color: rgba(157, 47, 47, 0.28);
+  border-color: rgba(157, 47, 47, 0.24);
   color: var(--danger);
+}
+
+.result-indicator {
+  width: 0.72rem;
+  height: 0.72rem;
+  margin-top: 0.34rem;
+  border-radius: 999px;
+  background: currentColor;
+  flex: 0 0 auto;
+}
+
+.result-message {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.result[data-tone="pending"] .result-indicator {
+  animation: status-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes status-pulse {
+  0%,
+  100% {
+    transform: scale(0.9);
+    opacity: 0.55;
+  }
+
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
 }
 
 .app-shell {
@@ -376,11 +456,7 @@ button:disabled {
 
 .list-row-meta strong {
   font-size: 0.98rem;
-}
-
-.list-row-meta span {
-  color: var(--muted);
-  font-size: 0.88rem;
+  word-break: break-word;
 }
 
 .list-empty {
@@ -405,14 +481,6 @@ button:disabled {
 .message-assistant {
   margin-right: 2rem;
   background: var(--success-soft);
-}
-
-.message-role {
-  margin: 0 0 0.4rem;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
 }
 
 .message-content {
@@ -442,6 +510,15 @@ button:disabled {
   .app-shell,
   .workspace-grid {
     grid-template-columns: 1fr;
+  }
+
+  .brand {
+    min-height: auto;
+    padding: 0.5rem 0;
+  }
+
+  .brand-title {
+    max-width: none;
   }
 
   .message-user,

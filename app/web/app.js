@@ -4,6 +4,26 @@ const DOCUMENT_KIND_LABELS = {
 };
 
 const DOCUMENT_KIND_ORDER = ["analytics", "sources"];
+const TASK_STATUS_COPY = {
+  conversion: {
+    preparing: "Подготавливаем файлы",
+    queued: "В очереди",
+    running: "Обрабатываем документы",
+    completed: "Готово",
+    failed: "Не удалось обработать документы",
+  },
+  generation: {
+    preparing: "Подготавливаем запрос",
+    queued: "В очереди",
+    running: "Генерируем аналитику",
+    completed: "Готово",
+    failed: "Не удалось сгенерировать аналитику",
+  },
+  auth: {
+    login: "Выполняем вход",
+    register: "Создаём аккаунт",
+  },
+};
 
 const state = {
   authMode: "login",
@@ -17,18 +37,112 @@ const state = {
   generationPollId: null,
 };
 
-function setResult(el, message, isError = false) {
-  el.textContent = message;
-  el.classList.toggle("error", isError);
+function setResult(el, message, options = {}) {
+  const normalizedOptions =
+    typeof options === "boolean" ? { tone: options ? "error" : "neutral" } : options;
+  const tone = normalizedOptions.tone || "neutral";
+
+  el.innerHTML = "";
+  el.classList.toggle("hidden", !message);
+
+  if (!message) {
+    el.removeAttribute("data-tone");
+    el.removeAttribute("role");
+    return;
+  }
+
+  el.dataset.tone = tone;
+  el.setAttribute("role", tone === "error" ? "alert" : "status");
+
+  const indicator = document.createElement("span");
+  indicator.className = "result-indicator";
+  indicator.setAttribute("aria-hidden", "true");
+
+  const text = document.createElement("p");
+  text.className = "result-message";
+  text.textContent = message;
+
+  el.append(indicator, text);
+}
+
+function formatErrorDetail(detail) {
+  if (typeof detail === "string") {
+    return detail;
+  }
+
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => {
+        if (typeof item === "string") {
+          return item;
+        }
+        if (item && typeof item === "object") {
+          const location = Array.isArray(item.loc) ? item.loc.join(" -> ") : "";
+          const message = typeof item.msg === "string" ? item.msg : JSON.stringify(item);
+          return location ? `${location}: ${message}` : message;
+        }
+        return JSON.stringify(item);
+      })
+      .join("\n");
+  }
+
+  if (detail && typeof detail === "object") {
+    const lines = [];
+    if (typeof detail.message === "string") {
+      lines.push(detail.message);
+    }
+    if (Array.isArray(detail.invalid_files) && detail.invalid_files.length > 0) {
+      lines.push(`Файлы: ${detail.invalid_files.join(", ")}`);
+    }
+    if (Array.isArray(detail.conflicting_stems) && detail.conflicting_stems.length > 0) {
+      lines.push(`Конфликт: ${detail.conflicting_stems.join(", ")}`);
+    }
+    if (Array.isArray(detail.allowed_values) && detail.allowed_values.length > 0) {
+      lines.push(`Допустимые значения: ${detail.allowed_values.join(", ")}`);
+    }
+    if (lines.length > 0) {
+      return lines.join("\n");
+    }
+  }
+
+  return JSON.stringify(detail, null, 2);
+}
+
+function setTaskStatus(el, taskType, status, detail = "") {
+  const baseMessage = TASK_STATUS_COPY[taskType]?.[status] || "Обновляем статус";
+  const tone =
+    status === "completed" ? "success" : status === "failed" ? "error" : "pending";
+  const message =
+    status === "failed" && detail
+      ? `${baseMessage}\n${detail}`
+      : detail || baseMessage;
+
+  setResult(el, message, { tone });
+}
+
+function extractConversionError(data) {
+  if (typeof data?.error === "string" && data.error.trim()) {
+    return data.error.trim();
+  }
+
+  const failedItem = Array.isArray(data?.items)
+    ? data.items.find((item) => typeof item?.error === "string" && item.error.trim())
+    : null;
+
+  if (!failedItem) {
+    return "";
+  }
+
+  return `${failedItem.filename}: ${failedItem.error}`;
 }
 
 async function readError(response) {
   try {
     const payload = await response.json();
-    if (typeof payload?.detail === "string") {
-      return payload.detail;
+    if (Object.prototype.hasOwnProperty.call(payload || {}, "detail")) {
+      return formatErrorDetail(payload.detail);
     }
-    return JSON.stringify(payload, null, 2);
+    return formatErrorDetail(payload);
   } catch {
     return await response.text();
   }
@@ -234,10 +348,11 @@ function renderDocuments() {
 
       const meta = document.createElement("div");
       meta.className = "list-row-meta";
-      meta.innerHTML = `
-        <strong>${documentItem.original_filename}</strong>
-        <span>stem: ${documentItem.stem}</span>
-      `;
+
+      const filename = document.createElement("strong");
+      filename.textContent = documentItem.original_filename;
+
+      meta.append(filename);
 
       const remove = document.createElement("button");
       remove.type = "button";
@@ -271,15 +386,11 @@ function renderMessages() {
     const item = document.createElement("article");
     item.className = `message message-${message.role}`;
 
-    const label = document.createElement("p");
-    label.className = "message-role";
-    label.textContent = message.role === "assistant" ? "Аналитика" : "Целевой период";
-
     const body = document.createElement("p");
     body.className = "message-content";
     body.textContent = message.content;
 
-    item.append(label, body);
+    item.append(body);
     messagesList.append(item);
   }
 
@@ -449,7 +560,7 @@ async function pollConversionStatus(threadId, taskId, fileInput) {
       `/api/v1/threads/${encodeURIComponent(threadId)}/conversions/${encodeURIComponent(taskId)}`,
     );
     if (data.status === "completed") {
-      setResult(convertResult, JSON.stringify(data, null, 2));
+      setTaskStatus(convertResult, "conversion", "completed");
       await refreshDocuments();
       await loadThreads(threadId);
       setConversionButtonsDisabled(false);
@@ -457,12 +568,12 @@ async function pollConversionStatus(threadId, taskId, fileInput) {
       return;
     }
     if (data.status === "failed") {
-      setResult(convertResult, JSON.stringify(data, null, 2), true);
+      setTaskStatus(convertResult, "conversion", "failed", extractConversionError(data));
       setConversionButtonsDisabled(false);
       return;
     }
 
-    setResult(convertResult, `Конвертация ${taskId}: ${data.status}...`);
+    setTaskStatus(convertResult, "conversion", data.status);
     scheduleConversionPolling(threadId, taskId, fileInput);
   } catch (error) {
     setResult(convertResult, String(error.message || error), true);
@@ -483,7 +594,7 @@ async function pollGenerationStatus(threadId, taskId) {
       `/api/v1/threads/${encodeURIComponent(threadId)}/generations/${encodeURIComponent(taskId)}`,
     );
     if (data.status === "completed") {
-      setResult(generationResult, data.analysis_markdown || "<empty markdown>");
+      setTaskStatus(generationResult, "generation", "completed");
       await refreshMessages();
       await loadThreads(threadId);
       generationSubmit.disabled = false;
@@ -491,13 +602,13 @@ async function pollGenerationStatus(threadId, taskId) {
       return;
     }
     if (data.status === "failed") {
-      setResult(generationResult, data.error || "Generation task failed.", true);
+      setTaskStatus(generationResult, "generation", "failed", data.error || "");
       await refreshMessages();
       generationSubmit.disabled = false;
       return;
     }
 
-    setResult(generationResult, `Генерация ${taskId}: ${data.status}...`);
+    setTaskStatus(generationResult, "generation", data.status);
     scheduleGenerationPolling(threadId, taskId);
   } catch (error) {
     setResult(generationResult, String(error.message || error), true);
@@ -524,7 +635,7 @@ async function startConversion(documentKind, fileInput) {
   }
 
   setConversionButtonsDisabled(true);
-  setResult(convertResult, "Создаю задачу конвертации...");
+  setTaskStatus(convertResult, "conversion", "preparing");
 
   try {
     const data = await apiFetch(
@@ -534,7 +645,7 @@ async function startConversion(documentKind, fileInput) {
         body: formData,
       },
     );
-    setResult(convertResult, `Конвертация ${data.task_id} поставлена в очередь.`);
+    setTaskStatus(convertResult, "conversion", "queued");
     await pollConversionStatus(state.activeThreadId, data.task_id, fileInput);
   } catch (error) {
     setResult(convertResult, String(error.message || error), true);
@@ -549,7 +660,7 @@ authForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   authSubmit.disabled = true;
-  setResult(authResult, state.authMode === "login" ? "Выполняю вход..." : "Создаю аккаунт...");
+  setResult(authResult, TASK_STATUS_COPY.auth[state.authMode], { tone: "pending" });
 
   try {
     const payload = {
@@ -634,7 +745,7 @@ generationForm.addEventListener("submit", async (event) => {
   }
 
   generationSubmit.disabled = true;
-  setResult(generationResult, "Создаю задачу генерации...");
+  setTaskStatus(generationResult, "generation", "preparing");
 
   try {
     const data = await apiFetch(
@@ -646,7 +757,7 @@ generationForm.addEventListener("submit", async (event) => {
       },
     );
     await refreshMessages();
-    setResult(generationResult, `Генерация ${data.task_id} поставлена в очередь.`);
+    setTaskStatus(generationResult, "generation", "queued");
     await pollGenerationStatus(state.activeThreadId, data.task_id);
   } catch (error) {
     setResult(generationResult, String(error.message || error), true);
