@@ -150,8 +150,6 @@ services:
       POSTGRES_DB: ${LANGFUSE_POSTGRES_DB:-postgres}
       TZ: UTC
       PGTZ: UTC
-    ports:
-      - "127.0.0.1:5432:5432"
     volumes:
       - langfuse_postgres_data:/var/lib/postgresql/data
 

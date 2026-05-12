@@ -1,4 +1,25 @@
 services:
+  migrate:
+    build: .
+    image: financial-analytics:local
+    restart: "no"
+    command: alembic upgrade head
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://financial_analytics:financial_analytics@api-postgres:5432/financial_analytics
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-dev-only-change-me-please-rotate-32chars}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
+      REDIS_URL: redis://redis:6379/2
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL_DOCKER:-http://host.docker.internal:3000}
+      MARKDOWNS_DIR: /app/markdowns
+      UPLOADED_PDFS_DIR: /app/uploaded_pdfs
+    depends_on:
+      api-postgres:
+        condition: service_healthy
+
   api:
     build: .
     image: financial-analytics:local
@@ -7,6 +28,9 @@ services:
     env_file:
       - .env
     environment:
+      DATABASE_URL: postgresql+psycopg://financial_analytics:financial_analytics@api-postgres:5432/financial_analytics
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-dev-only-change-me-please-rotate-32chars}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
       REDIS_URL: redis://redis:6379/2
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
@@ -16,8 +40,12 @@ services:
     ports:
       - "8000:8000"
     depends_on:
+      api-postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     volumes:
       - markdowns_data:/app/markdowns
       - uploaded_pdfs_data:/app/uploaded_pdfs
@@ -32,20 +60,47 @@ services:
     env_file:
       - .env
     environment:
+      DATABASE_URL: postgresql+psycopg://financial_analytics:financial_analytics@api-postgres:5432/financial_analytics
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-dev-only-change-me-please-rotate-32chars}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
       REDIS_URL: redis://redis:6379/2
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
       LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL_DOCKER:-http://host.docker.internal:3000}
       MARKDOWNS_DIR: /app/markdowns
       UPLOADED_PDFS_DIR: /app/uploaded_pdfs
+      QA_RUNNER_IMAGE: financial-analytics:local
+      MARKDOWNS_DOCKER_VOLUME: financial-analytics-markdowns-data
     depends_on:
+      api-postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     volumes:
       - markdowns_data:/app/markdowns
       - uploaded_pdfs_data:/app/uploaded_pdfs
+      - /var/run/docker.sock:/var/run/docker.sock
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+  api-postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: financial_analytics
+      POSTGRES_USER: financial_analytics
+      POSTGRES_PASSWORD: financial_analytics
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U financial_analytics -d financial_analytics"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
   redis:
     image: redis:7
@@ -60,4 +115,8 @@ services:
 
 volumes:
   markdowns_data:
+    name: financial-analytics-markdowns-data
   uploaded_pdfs_data:
+    name: financial-analytics-uploaded-pdfs-data
+  postgres_data:
+    name: financial-analytics-postgres-data

@@ -6,4 +6,4 @@
 - просим codex исследовать тезисы, факты из аналитики на предмет покрытости источниками, описать что не покрыто
 - ищем доп инфу по непокрытым источникам
 - преобразуем в маркдауны
-- используем [benchmark_json_prompt.py](prompts/benchmark_json_prompt.py)
+- используем [benchmark_json_prompt.py](prompts/benchmark_json_prompt.py) и скармливаем промпт в codex

@@ -1,12 +1,20 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from functools import lru_cache
 from types import TracebackType
-from typing import Any, Literal
+from typing import Any, Literal, Sequence
 
 from langfuse import Langfuse, propagate_attributes
+from langfuse.api.ingestion.types.create_span_body import CreateSpanBody
+from langfuse.api.ingestion.types.create_generation_body import CreateGenerationBody
+from langfuse.api.ingestion.types.ingestion_event import (
+    IngestionEvent_GenerationCreate,
+    IngestionEvent_SpanCreate,
+)
 
+from app.codex_runner.run import CodexTraceStep
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -147,6 +155,132 @@ def safe_update_observation(observation: Any | None, **kwargs: Any) -> None:
         observation.update(**kwargs)
     except Exception:
         logger.exception("Failed to update Langfuse observation.")
+
+
+def _build_stable_langfuse_id(*parts: str) -> str:
+    return uuid.uuid5(uuid.NAMESPACE_URL, "::".join(parts)).hex
+
+
+def _build_codex_step_ingestion_events(
+    *,
+    trace_id: str,
+    parent_observation_id: str,
+    task_id: str,
+    steps: Sequence[CodexTraceStep],
+    model_name: str | None = None,
+) -> list[IngestionEvent_SpanCreate | IngestionEvent_GenerationCreate]:
+    events: list[IngestionEvent_SpanCreate | IngestionEvent_GenerationCreate] = []
+
+    for index, step in enumerate(steps):
+        observation_id = _build_stable_langfuse_id(
+            task_id,
+            step.step_type,
+            str(index),
+            "observation",
+        )
+        event_id = _build_stable_langfuse_id(
+            task_id,
+            step.step_type,
+            str(index),
+            "event",
+        )
+        event_metadata = dict(step.metadata)
+        event_metadata.setdefault("step_index", index)
+        event_metadata.setdefault("step_type", step.step_type)
+
+        if step.step_type == "final_output":
+            usage_details = None
+            tokens_used = event_metadata.get("tokens_used")
+            if isinstance(tokens_used, int):
+                usage_details = {"total_tokens": tokens_used}
+
+            events.append(
+                IngestionEvent_GenerationCreate(
+                    id=event_id,
+                    timestamp=step.start_time.isoformat(),
+                    body=CreateGenerationBody(
+                        id=observation_id,
+                        trace_id=trace_id,
+                        parent_observation_id=parent_observation_id,
+                        name=step.name,
+                        start_time=step.start_time,
+                        end_time=step.end_time,
+                        completion_start_time=step.start_time,
+                        input=step.input,
+                        output=step.output,
+                        metadata=event_metadata,
+                        level=step.level,
+                        environment=settings.LANGFUSE_TRACING_ENVIRONMENT,
+                        version=settings.LANGFUSE_RELEASE,
+                        model=model_name,
+                        usage_details=usage_details,
+                    ),
+                )
+            )
+            continue
+
+        events.append(
+            IngestionEvent_SpanCreate(
+                id=event_id,
+                timestamp=step.start_time.isoformat(),
+                body=CreateSpanBody(
+                    id=observation_id,
+                    trace_id=trace_id,
+                    parent_observation_id=parent_observation_id,
+                    name=step.name,
+                    start_time=step.start_time,
+                    end_time=step.end_time,
+                    input=step.input,
+                    output=step.output,
+                    metadata=event_metadata,
+                    level=step.level,
+                    environment=settings.LANGFUSE_TRACING_ENVIRONMENT,
+                    version=settings.LANGFUSE_RELEASE,
+                ),
+            )
+        )
+
+    return events
+
+
+def emit_codex_step_observations(
+    *,
+    root_observation: Any | None,
+    task_id: str,
+    steps: Sequence[CodexTraceStep],
+    model_name: str | None = None,
+) -> None:
+    langfuse_client = get_langfuse_client()
+    if langfuse_client is None or root_observation is None or not steps:
+        return
+
+    trace_id = getattr(root_observation, "trace_id", None)
+    parent_observation_id = getattr(root_observation, "id", None)
+    if not trace_id or not parent_observation_id:
+        return
+
+    try:
+        events = _build_codex_step_ingestion_events(
+            trace_id=trace_id,
+            parent_observation_id=parent_observation_id,
+            task_id=task_id,
+            steps=steps,
+            model_name=model_name,
+        )
+        if not events:
+            return
+        langfuse_client.api.ingestion.batch(
+            batch=events,
+            metadata={
+                "source": "financial-analytics.generation.codex_runner",
+                "task_id": task_id,
+            },
+        )
+    except Exception:
+        logger.exception(
+            "Failed to emit Codex step observations for task `%s`.",
+            task_id,
+        )
 
 
 def flush_langfuse() -> None:

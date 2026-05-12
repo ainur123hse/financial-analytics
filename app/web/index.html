@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,45 +8,146 @@
 </head>
 <body>
   <main class="page">
-    <header class="hero">
-      <h1>Financial Analytics</h1>
-      <p>Upload supported documents, track conversion status, and ask questions across markdowns.</p>
-    </header>
+    <section id="auth-shell" class="auth-shell">
+      <div class="brand">
+        <p class="eyebrow">Financial Analytics</p>
+        <h1>Приватные треды для аналитики и генерации</h1>
+        <p class="lede">Каждый пользователь работает только со своими тредами, двумя типами документов и историей сгенерированной аналитики.</p>
+      </div>
 
-    <section class="card">
-      <h2>1. Convert Documents to Markdown</h2>
-      <form id="convert-form" class="stack">
-        <label class="label" for="pdf-files">Supported documents</label>
-        <input
-          id="pdf-files"
-          name="files"
-          type="file"
-          accept=".pdf,.html,.htm,text/html,application/pdf"
-          multiple
-          required
-        >
-        <button id="convert-submit" type="submit">Start conversion</button>
-      </form>
-      <div id="convert-result" class="result"></div>
+      <section class="card auth-card">
+        <div class="auth-switch" role="tablist" aria-label="Auth mode">
+          <button id="login-tab" class="ghost-button is-active" type="button">Вход</button>
+          <button id="register-tab" class="ghost-button" type="button">Регистрация</button>
+        </div>
+
+        <form id="auth-form" class="stack">
+          <label class="label" for="auth-email">Email</label>
+          <input id="auth-email" type="email" autocomplete="email" required>
+          <label class="label" for="auth-password">Пароль</label>
+          <input id="auth-password" type="password" autocomplete="current-password" minlength="8" required>
+          <button id="auth-submit" type="submit">Войти</button>
+        </form>
+        <div id="auth-result" class="result"></div>
+      </section>
     </section>
 
-    <section class="card">
-      <h2>2. Check conversion status</h2>
-      <form id="status-form" class="inline">
-        <input id="task-id" type="text" placeholder="Paste task_id" required>
-        <button type="submit">Get status</button>
-      </form>
-      <div id="status-result" class="result"></div>
-    </section>
+    <section id="app-shell" class="app-shell hidden">
+      <aside class="sidebar card">
+        <div class="sidebar-top">
+          <div>
+            <p class="eyebrow">Аккаунт</p>
+            <h2 id="user-email" class="sidebar-title"></h2>
+          </div>
+          <button id="logout-button" class="ghost-button" type="button">Выйти</button>
+        </div>
 
-    <section class="card">
-      <h2>3. Ask a question</h2>
-      <form id="qa-form" class="stack">
-        <label class="label" for="question">Question</label>
-        <textarea id="question" rows="4" placeholder="What is the revenue trend?" required></textarea>
-        <button type="submit">Ask</button>
-      </form>
-      <div id="qa-result" class="result"></div>
+        <div class="sidebar-actions">
+          <button id="create-thread-button" type="button">Создать тред</button>
+        </div>
+
+        <div class="thread-list-wrap">
+          <p class="section-label">Треды</p>
+          <div id="thread-list" class="thread-list"></div>
+        </div>
+      </aside>
+
+      <section class="workspace">
+        <header class="workspace-header card">
+          <div>
+            <p class="eyebrow">Текущий тред</p>
+            <h1 id="thread-title">Выберите тред</h1>
+          </div>
+          <div id="thread-actions" class="workspace-actions hidden">
+            <button id="rename-thread-button" class="ghost-button" type="button">Переименовать</button>
+            <button id="delete-thread-button" class="danger-button" type="button">Удалить</button>
+          </div>
+        </header>
+
+        <section id="thread-empty" class="card empty-state">
+          <h2>Нет активного треда</h2>
+          <p>Создайте тред, затем загрузите аналитику прошлых периодов и релевантные источники, после чего задайте целевой период для новой аналитики.</p>
+        </section>
+
+        <section id="thread-detail" class="workspace-grid hidden">
+          <section class="card docs-card">
+            <div class="section-header">
+              <div>
+                <p class="section-label">Документы</p>
+                <h2>Два бизнес-типа загрузки</h2>
+              </div>
+            </div>
+
+            <div class="upload-groups">
+              <section class="upload-group">
+                <div>
+                  <p class="section-label">Тип 1</p>
+                  <h3>Аналитика прошлых периодов</h3>
+                </div>
+                <form id="analytics-convert-form" class="stack">
+                  <label class="label" for="analytics-files">Поддерживаемые документы</label>
+                  <input
+                    id="analytics-files"
+                    name="files"
+                    type="file"
+                    accept=".pdf,.html,.htm,text/html,application/pdf"
+                    multiple
+                    required
+                  >
+                  <button id="analytics-convert-submit" type="submit">Загрузить аналитику</button>
+                </form>
+              </section>
+
+              <section class="upload-group">
+                <div>
+                  <p class="section-label">Тип 2</p>
+                  <h3>Релевантные источники</h3>
+                </div>
+                <form id="sources-convert-form" class="stack">
+                  <label class="label" for="sources-files">Поддерживаемые документы</label>
+                  <input
+                    id="sources-files"
+                    name="files"
+                    type="file"
+                    accept=".pdf,.html,.htm,text/html,application/pdf"
+                    multiple
+                    required
+                  >
+                  <button id="sources-convert-submit" type="submit">Загрузить источники</button>
+                </form>
+              </section>
+            </div>
+
+            <div id="convert-result" class="result"></div>
+
+            <div class="list-block">
+              <div class="list-header">
+                <h3>Файлы треда</h3>
+                <button id="refresh-documents-button" class="ghost-button" type="button">Обновить</button>
+              </div>
+              <div id="documents-list" class="document-list"></div>
+            </div>
+          </section>
+
+          <section class="card chat-card">
+            <div class="section-header">
+              <div>
+                <p class="section-label">Генерация</p>
+                <h2>Новая аналитика по целевому периоду</h2>
+              </div>
+            </div>
+
+            <div id="messages-list" class="message-list"></div>
+
+            <form id="generation-form" class="stack chat-form">
+              <label class="label" for="period-description">Целевой период</label>
+              <textarea id="period-description" rows="5" placeholder="Например: март 2026, результаты I квартала 2026 года" required></textarea>
+              <button id="generation-submit" type="submit">Сгенерировать аналитику</button>
+            </form>
+            <div id="generation-result" class="result"></div>
+          </section>
+        </section>
+      </section>
     </section>
   </main>
 
