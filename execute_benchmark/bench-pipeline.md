@@ -60,8 +60,9 @@ Each `evaluation.json` contains:
 - `precision`
 - `recall`
 - `f1`
-- `missing_reference_claims`
-- `unsupported_generated_claims`
+- `tp`
+- `fn`
+- `fp`
 - `comment`
 
 ## Usage
